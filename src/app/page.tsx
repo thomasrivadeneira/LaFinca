@@ -4,8 +4,8 @@ import { useState } from "react";
 import type { Usuario, Vista } from "@/types";
 import { useAppData } from "@/lib/useAppData";
 import Login from "@/components/Login";
+import Sidebar, { NAV } from "@/components/Sidebar";
 import Menu from "@/components/Menu";
-import TopBar from "@/components/TopBar";
 import PlanillaForm from "@/components/PlanillaForm";
 import Gastos from "@/components/Gastos";
 import Usuarios from "@/components/Usuarios";
@@ -16,26 +16,35 @@ import Historial from "@/components/Historial";
 import Reportes from "@/components/Reportes";
 
 const TITULOS: Record<Vista, string> = {
-  menu: "Menú principal",
+  menu: "Inicio",
   carga: "Planilla diaria",
   gastos: "Gastos",
-  historial: "Historial de planillas",
-  usuarios: "ABM de usuarios",
+  historial: "Historial",
+  usuarios: "Usuarios",
   productos: "Stock de productos",
-  bicarbonatos: "Bicarbonatos / Sabores",
-  cernidasel: "Cernida / Seleccionada / Machucada",
+  bicarbonatos: "Bicarbonatos",
+  cernidasel: "Cernida / Seleccionada",
   reportes: "Reportes",
 };
+
+const HOME_ICON = "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z";
 
 export default function Home() {
   const { data, loaded, update } = useAppData();
   const [user, setUser] = useState<Usuario | null>(null);
   const [vista, setVista] = useState<Vista>("menu");
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!loaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-[var(--text-muted)] animate-pulse">Cargando...</p>
+        <div className="flex items-center gap-3 text-[var(--text-muted)]">
+          <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span className="text-sm">Cargando...</span>
+        </div>
       </div>
     );
   }
@@ -44,87 +53,122 @@ export default function Home() {
     return (
       <Login
         usuarios={data.usuarios}
-        onLogin={(u) => {
-          setUser(u);
-          setVista("menu");
-        }}
+        onLogin={(u) => { setUser(u); setVista("menu"); }}
       />
     );
   }
 
+  const navItem = NAV.find((n) => n.view === vista);
+  const iconD = navItem?.d ?? HOME_ICON;
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-4">
-        <TopBar
-          titulo={TITULOS[vista]}
-          user={user}
-          enMenu={vista === "menu"}
-          onGoMenu={() => setVista("menu")}
-          onLogout={() => {
-            setUser(null);
-            setVista("menu");
-          }}
-        />
+    <div className="flex h-screen overflow-hidden bg-[var(--bg-base)]">
+      <Sidebar
+        user={user}
+        vista={vista}
+        collapsed={collapsed}
+        mobileOpen={mobileOpen}
+        onGo={setVista}
+        onLogout={() => { setUser(null); setVista("menu"); }}
+        onToggle={() => setCollapsed((c) => !c)}
+        onCloseMobile={() => setMobileOpen(false)}
+      />
 
-        <main className="animate-fade-in">
-          {vista === "menu" && <Menu user={user} onGo={setVista} />}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Content header */}
+        <header className="shrink-0 h-14 border-b border-[var(--border)] bg-[var(--bg-elevated)] px-5 flex items-center gap-3">
+          <button
+            className="lg:hidden w-8 h-8 rounded-lg hover:bg-[var(--bg-muted)] flex items-center justify-center transition-all"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menú"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
 
-          {vista === "carga" && (
-            <PlanillaForm
-              user={user}
-              onSave={(p) => update((d) => ({ ...d, planillas: [...d.planillas, p] }))}
-              onCancel={() => setVista("menu")}
-            />
-          )}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)] shrink-0">
+            <path d={iconD} />
+          </svg>
+          <h1 className="font-display font-semibold text-sm">{TITULOS[vista]}</h1>
 
-          {vista === "gastos" && (
-            <Gastos
-              user={user}
-              gastos={data.gastos}
-              onSave={(gastos) => update((d) => ({ ...d, gastos }))}
-            />
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2 text-xs text-[var(--text-muted)] border border-[var(--border)] rounded-lg px-2.5 py-1.5">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white text-[9px] font-bold">
+                {user.user.charAt(0).toUpperCase()}
+              </div>
+              <span className="font-medium text-[var(--text)]">{user.user}</span>
+              <span className="text-[var(--text-muted)]">·</span>
+              <span>{user.rol}</span>
+            </div>
+          </div>
+        </header>
 
-          {vista === "usuarios" && user.rol === "Administrador" && (
-            <Usuarios
-              usuarios={data.usuarios}
-              onSave={(usuarios) => update((d) => ({ ...d, usuarios }))}
-            />
-          )}
+        {/* Scrollable content */}
+        <main key={vista} className="flex-1 overflow-y-auto p-5 lg:p-7 animate-fade-in">
+          <div className="max-w-5xl mx-auto">
+            {vista === "menu" && (
+              <Menu user={user} data={data} onGo={setVista} />
+            )}
 
-          {vista === "productos" && (
-            <Productos
-              user={user}
-              productos={data.productos}
-              onSave={(productos) => update((d) => ({ ...d, productos }))}
-            />
-          )}
+            {vista === "carga" && (
+              <PlanillaForm
+                user={user}
+                onSave={(p) => {
+                  update((d) => ({ ...d, planillas: [...d.planillas, p] }));
+                  setVista("historial");
+                }}
+                onCancel={() => setVista("menu")}
+              />
+            )}
 
-          {vista === "bicarbonatos" && (
-            <Bicarbonatos
-              user={user}
-              bicarbonatos={data.bicarbonatos}
-              onSave={(bicarbonatos) => update((d) => ({ ...d, bicarbonatos }))}
-            />
-          )}
+            {vista === "gastos" && (
+              <Gastos
+                user={user}
+                gastos={data.gastos}
+                onSave={(gastos) => update((d) => ({ ...d, gastos }))}
+              />
+            )}
 
-          {vista === "cernidasel" && (
-            <CernidaSel
-              user={user}
-              registros={data.cernidaSel}
-              onSave={(cernidaSel) => update((d) => ({ ...d, cernidaSel }))}
-            />
-          )}
+            {vista === "usuarios" && user.rol === "Administrador" && (
+              <Usuarios
+                usuarios={data.usuarios}
+                onSave={(usuarios) => update((d) => ({ ...d, usuarios }))}
+              />
+            )}
 
-          {vista === "historial" && <Historial planillas={data.planillas} />}
+            {vista === "productos" && (
+              <Productos
+                user={user}
+                productos={data.productos}
+                onSave={(productos) => update((d) => ({ ...d, productos }))}
+              />
+            )}
 
-          {vista === "reportes" && <Reportes data={data} />}
+            {vista === "bicarbonatos" && (
+              <Bicarbonatos
+                user={user}
+                bicarbonatos={data.bicarbonatos}
+                onSave={(bicarbonatos) => update((d) => ({ ...d, bicarbonatos }))}
+              />
+            )}
+
+            {vista === "cernidasel" && (
+              <CernidaSel
+                user={user}
+                registros={data.cernidaSel}
+                onSave={(cernidaSel) => update((d) => ({ ...d, cernidaSel }))}
+              />
+            )}
+
+            {vista === "historial" && <Historial planillas={data.planillas} />}
+
+            {vista === "reportes" && <Reportes data={data} />}
+          </div>
         </main>
       </div>
-
-      <footer className="text-center text-xs text-[var(--text-muted)] py-4 border-t border-[var(--border)]">
-        La Finca · Sistema de planillas
-      </footer>
     </div>
   );
 }
