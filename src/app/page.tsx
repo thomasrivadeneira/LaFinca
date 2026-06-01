@@ -116,6 +116,7 @@ export default function Home() {
             {vista === "carga" && (
               <PlanillaForm
                 user={user}
+                gastos={data.gastos}
                 onSave={(p) => {
                   update((d) => ({ ...d, planillas: [...d.planillas, p] }));
                   setVista("historial");

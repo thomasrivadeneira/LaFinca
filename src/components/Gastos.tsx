@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Usuario, Gasto } from "@/types";
-import { Card, Field, Input, Button, Table, Th, Td } from "./ui";
-import { uid, money } from "@/lib/defaults";
+import type { Usuario, Gasto, Sucursal } from "@/types";
+import { Card, Field, Input, Select, Button, Table, Th, Td, Badge } from "./ui";
+import { uid, money, SUCURSALES } from "@/lib/defaults";
 
 interface Props {
   user: Usuario;
@@ -11,24 +11,33 @@ interface Props {
   onSave: (gastos: Gasto[]) => void;
 }
 
+type Filtro = "Todas" | Sucursal;
+
 export default function Gastos({ user, gastos, onSave }: Props) {
   const esAdmin = user.rol === "Administrador";
   const hoy = new Date().toISOString().slice(0, 10);
+
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ fecha: hoy, concepto: "", monto: "" });
+  const [form, setForm] = useState<{ fecha: string; sucursal: Sucursal; concepto: string; monto: string }>({
+    fecha: hoy,
+    sucursal: "Belgrano",
+    concepto: "",
+    monto: "",
+  });
   const [err, setErr] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>("Todas");
 
   const editing = editId ? gastos.find((g) => g.id === editId) ?? null : null;
 
   const startEdit = (g: Gasto) => {
     setEditId(g.id);
-    setForm({ fecha: g.fecha, concepto: g.concepto, monto: String(g.monto) });
+    setForm({ fecha: g.fecha, sucursal: g.sucursal, concepto: g.concepto, monto: String(g.monto) });
     setErr("");
   };
 
   const cancelar = () => {
     setEditId(null);
-    setForm({ fecha: hoy, concepto: "", monto: "" });
+    setForm({ fecha: hoy, sucursal: "Belgrano", concepto: "", monto: "" });
     setErr("");
   };
 
@@ -37,11 +46,25 @@ export default function Gastos({ user, gastos, onSave }: Props) {
       setErr("Concepto y monto son obligatorios");
       return;
     }
+    if (!form.sucursal) {
+      setErr("Sucursal es obligatoria");
+      return;
+    }
     const monto = Number(form.monto);
     if (editId) {
       onSave(gastos.map((g) => (g.id === editId ? { ...g, ...form, monto } : g)));
     } else {
-      onSave([...gastos, { id: uid(), fecha: form.fecha, concepto: form.concepto.trim(), monto, usuario: user.user }]);
+      onSave([
+        ...gastos,
+        {
+          id: uid(),
+          fecha: form.fecha,
+          sucursal: form.sucursal,
+          concepto: form.concepto.trim(),
+          monto,
+          usuario: user.user,
+        },
+      ]);
     }
     cancelar();
   };
@@ -51,62 +74,126 @@ export default function Gastos({ user, gastos, onSave }: Props) {
     if (confirm("¿Eliminar este gasto?")) onSave(gastos.filter((g) => g.id !== id));
   };
 
-  const total = gastos.reduce((a, g) => a + Number(g.monto || 0), 0);
+  const gastosFiltrados = filtro === "Todas" ? gastos : gastos.filter((g) => g.sucursal === filtro);
+  const total = gastosFiltrados.reduce((a, g) => a + Number(g.monto || 0), 0);
+
+  const pillBase = "px-3 py-1.5 text-xs font-medium rounded-lg border transition-all";
+  const pillActive = "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30";
+  const pillInactive = "bg-[var(--bg-elevated)] text-[var(--text-muted)] border-[var(--border)] hover:bg-[var(--bg-muted)]";
 
   return (
     <>
       <Card className="p-5 mb-4">
-        <h3 className="text-sm font-medium mb-3">{editing ? "Modificar gasto" : "Nuevo gasto"}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_1fr_auto] gap-2 items-end">
-          <Field label="Fecha"><Input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></Field>
-          <Field label="Concepto"><Input type="text" value={form.concepto} onChange={(e) => setForm({ ...form, concepto: e.target.value })} placeholder="Ej: Heladera, escoba..." /></Field>
-          <Field label="Monto"><Input type="number" value={form.monto} onChange={(e) => setForm({ ...form, monto: e.target.value })} /></Field>
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+          {editing ? "Modificar gasto" : "Nuevo gasto"}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_2fr_1fr_auto] gap-2 items-end">
+          <Field label="Fecha">
+            <Input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} />
+          </Field>
+          <Field label="Sucursal">
+            <Select
+              value={form.sucursal}
+              onChange={(e) => setForm({ ...form, sucursal: e.target.value as Sucursal })}
+            >
+              {SUCURSALES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </Field>
+          <Field label="Concepto">
+            <Input
+              type="text"
+              value={form.concepto}
+              onChange={(e) => setForm({ ...form, concepto: e.target.value })}
+              placeholder="Ej: Heladera, escoba..."
+            />
+          </Field>
+          <Field label="Monto">
+            <Input
+              type="number"
+              value={form.monto}
+              onChange={(e) => setForm({ ...form, monto: e.target.value })}
+            />
+          </Field>
           <div className="flex gap-2">
             <Button variant="primary" onClick={guardar}>{editing ? "Guardar" : "Agregar"}</Button>
             {editing && <Button onClick={cancelar}>Cancelar</Button>}
           </div>
         </div>
-        {err && <div className="text-sm text-red-600 dark:text-red-400 mt-2">{err}</div>}
+        {err && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{err}</p>}
       </Card>
+
+      {/* Filtro por sucursal */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs text-[var(--text-muted)] font-medium">Filtrar:</span>
+        {(["Todas", ...SUCURSALES] as Filtro[]).map((op) => (
+          <button
+            key={op}
+            onClick={() => setFiltro(op)}
+            className={`${pillBase} ${filtro === op ? pillActive : pillInactive}`}
+          >
+            {op}
+          </button>
+        ))}
+      </div>
 
       <Table>
         <thead>
-          <tr><Th>Fecha</Th><Th>Concepto</Th><Th align="right">Monto</Th><Th>Cargó</Th><Th align="right">Acciones</Th></tr>
+          <tr>
+            <Th>Fecha</Th>
+            <Th>Sucursal</Th>
+            <Th>Concepto</Th>
+            <Th align="right">Monto</Th>
+            <Th>Cargó</Th>
+            <Th align="right">Acciones</Th>
+          </tr>
         </thead>
         <tbody>
-          {gastos.length === 0 ? (
-            <tr><Td className="text-center text-slate-400">Sin gastos cargados</Td><Td></Td><Td></Td><Td></Td><Td></Td></tr>
+          {gastosFiltrados.length === 0 ? (
+            <tr>
+              <Td className="text-center text-[var(--text-muted)]" align="left">
+                Sin gastos{filtro !== "Todas" ? ` para ${filtro}` : ""}
+              </Td>
+              <Td /><Td /><Td /><Td /><Td />
+            </tr>
           ) : (
-            gastos.slice().reverse().map((g) => (
+            gastosFiltrados.slice().reverse().map((g) => (
               <tr key={g.id}>
                 <Td>{g.fecha}</Td>
+                <Td>
+                  <Badge color={g.sucursal === "Belgrano" ? "blue" : "green"}>{g.sucursal}</Badge>
+                </Td>
                 <Td>{g.concepto}</Td>
                 <Td align="right">{money(g.monto)}</Td>
-                <Td className="text-slate-500">{g.usuario}</Td>
+                <Td className="text-[var(--text-muted)]">{g.usuario}</Td>
                 <Td align="right">
                   <div className="flex gap-1 justify-end">
-                    <Button variant="ghost" onClick={() => startEdit(g)}>Editar</Button>
-                    {esAdmin && <Button variant="danger" onClick={() => borrar(g.id)}>Borrar</Button>}
+                    <Button size="sm" variant="ghost" onClick={() => startEdit(g)}>Editar</Button>
+                    {esAdmin && (
+                      <Button size="sm" variant="danger" onClick={() => borrar(g.id)}>Borrar</Button>
+                    )}
                   </div>
                 </Td>
               </tr>
             ))
           )}
         </tbody>
-        {gastos.length > 0 && (
+        {gastosFiltrados.length > 0 && (
           <tfoot>
-            <tr className="bg-slate-50 dark:bg-slate-900/50">
-              <Td className="font-medium">Total</Td>
-              <Td></Td>
-              <Td align="right" className="font-medium">{money(total)}</Td>
-              <Td></Td><Td></Td>
+            <tr className="bg-[var(--bg-muted)]">
+              <Td className="font-semibold" />
+              <Td className="font-semibold text-xs text-[var(--text-muted)]">
+                {filtro !== "Todas" ? filtro : "Todas"}
+              </Td>
+              <Td className="font-semibold">Total</Td>
+              <Td align="right" className="font-semibold">{money(total)}</Td>
+              <Td /><Td />
             </tr>
           </tfoot>
         )}
       </Table>
 
       {!esAdmin && (
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+        <p className="text-xs text-[var(--text-muted)] mt-2">
           Como operador podés agregar y editar gastos. Solo el administrador puede eliminarlos.
         </p>
       )}

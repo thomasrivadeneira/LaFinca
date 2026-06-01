@@ -8,6 +8,7 @@ import type {
   Bicarbonato,
   CernidaSelRegistro,
   Planilla,
+  Sucursal,
 } from "@/types";
 import {
   USUARIOS_DEFAULT,
@@ -36,6 +37,32 @@ const initialData: AppData = {
   planillas: [],
 };
 
+function normalizeSucursal(s: unknown): Sucursal {
+  if (typeof s !== "string") return "Belgrano";
+  const lower = s.toLowerCase().trim();
+  if (lower === "roca") return "Roca";
+  return "Belgrano";
+}
+
+function migrateData(parsed: Partial<AppData>): AppData {
+  const gastos: Gasto[] = (parsed.gastos ?? []).map((g) => ({
+    ...g,
+    sucursal: normalizeSucursal((g as Gasto & { sucursal?: unknown }).sucursal),
+  }));
+
+  const planillas: Planilla[] = (parsed.planillas ?? []).map((p) => ({
+    ...p,
+    sucursal: normalizeSucursal(p.sucursal),
+  }));
+
+  return {
+    ...initialData,
+    ...parsed,
+    gastos,
+    planillas,
+  };
+}
+
 export function useAppData() {
   const [data, setData] = useState<AppData>(initialData);
   const [loaded, setLoaded] = useState(false);
@@ -44,8 +71,8 @@ export function useAppData() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        setData({ ...initialData, ...parsed });
+        const parsed = JSON.parse(raw) as Partial<AppData>;
+        setData(migrateData(parsed));
       }
     } catch (e) {
       console.error("Error cargando datos", e);
@@ -62,20 +89,17 @@ export function useAppData() {
     }
   }, []);
 
-  const update = useCallback(
-    (mut: (d: AppData) => AppData) => {
-      setData((prev) => {
-        const next = mut(prev);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch (e) {
-          console.error("Error guardando datos", e);
-        }
-        return next;
-      });
-    },
-    []
-  );
+  const update = useCallback((mut: (d: AppData) => AppData) => {
+    setData((prev) => {
+      const next = mut(prev);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.error("Error guardando datos", e);
+      }
+      return next;
+    });
+  }, []);
 
   return { data, loaded, save, update };
 }

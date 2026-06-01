@@ -1,4 +1,5 @@
 export type Rol = "Administrador" | "Operador";
+export type Sucursal = "Belgrano" | "Roca";
 
 export interface Usuario {
   id: string;
@@ -11,6 +12,7 @@ export interface Usuario {
 export interface Gasto {
   id: string;
   fecha: string;
+  sucursal: Sucursal;
   concepto: string;
   monto: number;
   usuario: string;
@@ -41,7 +43,7 @@ export interface CernidaSelRegistro {
 export interface Planilla {
   id: string;
   fecha: string;
-  sucursal: string;
+  sucursal: Sucursal;
   total: string;
   transferencia: string;
   posnet: string;
