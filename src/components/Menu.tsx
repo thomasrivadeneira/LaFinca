@@ -2,7 +2,7 @@
 
 import type { Usuario, Vista } from "@/types";
 import type { AppData } from "@/lib/useAppData";
-import { money, num } from "@/lib/defaults";
+import { money } from "@/lib/defaults";
 
 interface Props {
   user: Usuario;
@@ -67,7 +67,6 @@ export default function Menu({ user, data, onGo }: Props) {
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
 
   const totalGastos = data.gastos.reduce((a, g) => a + Number(g.monto || 0), 0);
-  const totalStock = data.productos.reduce((a, p) => a + Number(p.stock || 0), 0);
   const recientes = data.planillas.slice().reverse().slice(0, 5);
 
   return (
@@ -98,8 +97,8 @@ export default function Menu({ user, data, onGo }: Props) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <QuickStat label="Planillas" value={data.planillas.length} gradient="from-indigo-500 to-violet-600" icon="📋" onClick={() => onGo("historial")} />
           <QuickStat label="Gastos totales" value={money(totalGastos)} gradient="from-fuchsia-500 to-pink-600" icon="💸" onClick={() => onGo("gastos")} />
-          <QuickStat label="Productos" value={data.productos.length} gradient="from-amber-500 to-orange-600" icon="📦" onClick={() => onGo("productos")} />
-          <QuickStat label="Unidades stock" value={num(totalStock)} gradient="from-emerald-500 to-teal-600" icon="🔢" onClick={() => onGo("productos")} />
+          <QuickStat label="Registros de gastos" value={data.gastos.length} gradient="from-amber-500 to-orange-600" icon="🧾" onClick={() => onGo("gastos")} />
+          <QuickStat label="Usuarios" value={data.usuarios.length} gradient="from-violet-500 to-purple-600" icon="👥" onClick={() => onGo("usuarios")} />
         </div>
       </div>
 

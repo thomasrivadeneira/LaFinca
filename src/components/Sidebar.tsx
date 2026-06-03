@@ -35,24 +35,6 @@ export const NAV: {
     d: "M21 8V7l-3 2-3-2-3 2-3-2-3 2-3-2v14l3-2 3 2 3-2 3 2 3-2 3 2V8z",
   },
   {
-    view: "productos",
-    label: "Stock productos",
-    gradient: "from-amber-500 to-orange-600",
-    d: "M20 7l-8-4-8 4m16 0v10l-8 4m8-14L12 11m0 0L4 7m8 4v10",
-  },
-  {
-    view: "bicarbonatos",
-    label: "Bicarbonatos",
-    gradient: "from-emerald-500 to-teal-600",
-    d: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z",
-  },
-  {
-    view: "cernidasel",
-    label: "Cernida / Sel.",
-    gradient: "from-cyan-500 to-blue-600",
-    d: "M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4",
-  },
-  {
     view: "historial",
     label: "Historial",
     gradient: "from-slate-500 to-slate-700",

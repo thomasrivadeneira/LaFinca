@@ -66,7 +66,4 @@ export type Vista =
   | "gastos"
   | "historial"
   | "usuarios"
-  | "productos"
-  | "bicarbonatos"
-  | "cernidasel"
   | "reportes";

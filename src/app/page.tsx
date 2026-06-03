@@ -9,9 +9,6 @@ import Menu from "@/components/Menu";
 import PlanillaForm from "@/components/PlanillaForm";
 import Gastos from "@/components/Gastos";
 import Usuarios from "@/components/Usuarios";
-import Productos from "@/components/Productos";
-import Bicarbonatos from "@/components/Bicarbonatos";
-import CernidaSel from "@/components/CernidaSel";
 import Historial from "@/components/Historial";
 import Reportes from "@/components/Reportes";
 
@@ -21,9 +18,6 @@ const TITULOS: Record<Vista, string> = {
   gastos: "Gastos",
   historial: "Historial",
   usuarios: "Usuarios",
-  productos: "Stock de productos",
-  bicarbonatos: "Bicarbonatos",
-  cernidasel: "Cernida / Seleccionada",
   reportes: "Reportes",
 };
 
@@ -137,30 +131,6 @@ export default function Home() {
               <Usuarios
                 usuarios={data.usuarios}
                 onSave={(usuarios) => update((d) => ({ ...d, usuarios }))}
-              />
-            )}
-
-            {vista === "productos" && (
-              <Productos
-                user={user}
-                productos={data.productos}
-                onSave={(productos) => update((d) => ({ ...d, productos }))}
-              />
-            )}
-
-            {vista === "bicarbonatos" && (
-              <Bicarbonatos
-                user={user}
-                bicarbonatos={data.bicarbonatos}
-                onSave={(bicarbonatos) => update((d) => ({ ...d, bicarbonatos }))}
-              />
-            )}
-
-            {vista === "cernidasel" && (
-              <CernidaSel
-                user={user}
-                registros={data.cernidaSel}
-                onSave={(cernidaSel) => update((d) => ({ ...d, cernidaSel }))}
               />
             )}
 
