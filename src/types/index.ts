@@ -57,6 +57,7 @@ export interface Planilla {
   observaciones: string;
   usuario: string;
   ts: number;
+  gastosModoManual?: boolean;
 }
 
 export type Vista =

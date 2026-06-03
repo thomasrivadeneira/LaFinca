@@ -25,6 +25,8 @@ export default function PlanillaForm({ user, gastos, onSave, onCancel }: Props) 
   });
   const [msg, setMsg] = useState("");
   const [showDesglose, setShowDesglose] = useState(false);
+  const [modoGastosManual, setModoGastosManual] = useState(false);
+  const [gastosManual, setGastosManual] = useState("");
 
   const set = (k: keyof typeof f) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -34,7 +36,8 @@ export default function PlanillaForm({ user, gastos, onSave, onCancel }: Props) 
   const gastosDelDia = gastos.filter(
     (g) => g.fecha === f.fecha && g.sucursal === f.sucursal
   );
-  const totalGastos = gastosDelDia.reduce((a, g) => a + Number(g.monto || 0), 0);
+  const totalGastosAuto = gastosDelDia.reduce((a, g) => a + Number(g.monto || 0), 0);
+  const totalGastosEfectivo = modoGastosManual ? Number(gastosManual || 0) : totalGastosAuto;
 
   const guardar = () => {
     const p: Planilla = {
@@ -44,7 +47,8 @@ export default function PlanillaForm({ user, gastos, onSave, onCancel }: Props) 
       total: f.total,
       transferencia: f.transferencia,
       posnet: f.posnet,
-      gastos: String(totalGastos),
+      gastos: String(totalGastosEfectivo),
+      gastosModoManual: modoGastosManual,
       pedidos_ing: f.pedidos_ing,
       pedidos_debe: f.pedidos_debe,
       debe_haber: f.debe_haber,
@@ -87,59 +91,98 @@ export default function PlanillaForm({ user, gastos, onSave, onCancel }: Props) 
           <Input type="number" value={f.posnet} onChange={set("posnet")} />
         </Field>
 
-        {/* Gastos auto-calculados */}
-        <Field label="Gastos del día (auto)">
-          <Input
-            type="text"
-            value={money(totalGastos)}
-            readOnly
-            className="bg-[var(--bg-muted)] cursor-not-allowed opacity-75"
-          />
-        </Field>
-      </div>
+        {/* Gastos del día: auto o manual */}
+        <Field label="Gastos del día">
+          <div className="space-y-2">
+            <Input
+              type={modoGastosManual ? "number" : "text"}
+              value={
+                modoGastosManual
+                  ? gastosManual
+                  : money(totalGastosAuto)
+              }
+              onChange={(e) => modoGastosManual && setGastosManual(e.target.value)}
+              readOnly={!modoGastosManual}
+              placeholder={modoGastosManual ? "Ingresá el monto" : ""}
+              className={!modoGastosManual ? "bg-[var(--bg-muted)] cursor-not-allowed opacity-75" : ""}
+            />
 
-      {/* Desglose de gastos */}
-      <div className="mt-2 mb-1">
-        {gastosDelDia.length === 0 ? (
-          <p className="text-xs text-[var(--text-muted)] italic">
-            Sin gastos cargados para esta fecha y sucursal.
-          </p>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => setShowDesglose((v) => !v)}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-            >
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className={`transition-transform ${showDesglose ? "rotate-90" : ""}`}
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-[var(--text-muted)]">
+                {modoGastosManual ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Modo manual activo · El valor no se calcula desde el ABM
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Modo automático · Suma desde el ABM de Gastos
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (modoGastosManual) {
+                    setModoGastosManual(false);
+                    setGastosManual("");
+                  } else {
+                    setModoGastosManual(true);
+                    setGastosManual(String(totalGastosAuto));
+                  }
+                }}
+                className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium whitespace-nowrap"
               >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-              {showDesglose ? "Ocultar desglose" : `Ver desglose (${gastosDelDia.length} gasto${gastosDelDia.length > 1 ? "s" : ""})`}
-            </button>
-            {showDesglose && (
-              <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] p-3 space-y-1">
-                {gastosDelDia.map((g) => (
-                  <div key={g.id} className="flex justify-between text-xs">
-                    <span className="text-[var(--text-muted)]">{g.concepto}</span>
-                    <span className="font-medium tabular-nums">{money(g.monto)}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between text-xs font-semibold pt-1.5 border-t border-[var(--border)]">
-                  <span>Total</span>
-                  <span className="tabular-nums">{money(totalGastos)}</span>
-                </div>
-              </div>
+                {modoGastosManual ? "Volver a automático" : "Editar manualmente"}
+              </button>
+            </div>
+
+            {/* Desglose (solo en modo auto) */}
+            {!modoGastosManual && (
+              gastosDelDia.length === 0 ? (
+                <p className="text-xs text-[var(--text-muted)] italic">
+                  Sin gastos cargados para esta fecha y sucursal.
+                </p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowDesglose((v) => !v)}
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      className={`transition-transform ${showDesglose ? "rotate-90" : ""}`}
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                    {showDesglose ? "Ocultar desglose" : `Ver desglose (${gastosDelDia.length} gasto${gastosDelDia.length > 1 ? "s" : ""})`}
+                  </button>
+                  {showDesglose && (
+                    <div className="mt-1 rounded-xl border border-[var(--border)] bg-[var(--bg-muted)] p-3 space-y-1">
+                      {gastosDelDia.map((g) => (
+                        <div key={g.id} className="flex justify-between text-xs">
+                          <span className="text-[var(--text-muted)]">{g.concepto}</span>
+                          <span className="font-medium tabular-nums">{money(g.monto)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-xs font-semibold pt-1.5 border-t border-[var(--border)]">
+                        <span>Total</span>
+                        <span className="tabular-nums">{money(totalGastosAuto)}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
             )}
-          </>
-        )}
+          </div>
+        </Field>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">

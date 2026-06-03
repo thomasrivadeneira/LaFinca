@@ -33,7 +33,16 @@ export default function Historial({ planillas }: { planillas: Planilla[] }) {
                 </Badge>
               </Td>
               <Td align="right">{money(p.total)}</Td>
-              <Td align="right">{money(p.gastos)}</Td>
+              <Td align="right">
+                <span className="inline-flex items-center gap-1.5">
+                  {money(p.gastos)}
+                  {p.gastosModoManual && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 leading-none">
+                      manual
+                    </span>
+                  )}
+                </span>
+              </Td>
               <Td align="right" className="font-medium text-emerald-600 dark:text-emerald-400">
                 {money(p.hay)}
               </Td>
