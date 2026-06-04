@@ -55,12 +55,12 @@ export default function Login({ usuarios, onLogin }: Props) {
     setLoading(true);
     setErr("");
     try {
-      const { data, error } = await supabase
+      // Traemos todos los usuarios activos y comparamos en JS
+      // (evita problemas con "user" como palabra reservada de PostgreSQL)
+      const { data: rows, error } = await supabase
         .from("usuarios")
         .select("*")
-        .eq("user", userTrim)
-        .eq("pass", pass)
-        .maybeSingle();
+        .eq("activo", true);
 
       if (error) {
         console.error("[Supabase] Login error:", error);
@@ -69,7 +69,11 @@ export default function Login({ usuarios, onLogin }: Props) {
         return;
       }
 
-      if (!data || !data.activo) {
+      const data = (rows ?? []).find(
+        (r) => r.user === userTrim && r.pass === pass
+      ) ?? null;
+
+      if (!data) {
         setErr("Usuario o contraseña incorrectos");
         setLoading(false);
         return;
