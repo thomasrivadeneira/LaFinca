@@ -60,11 +60,16 @@ export default function Login({ usuarios, onLogin }: Props) {
         .select("*")
         .eq("user", userTrim)
         .eq("pass", pass)
-        .eq("activo", true)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
         console.error("[Supabase] Login error:", error);
+        setErr("No se pudo conectar a la base de datos. Verificá tu conexión.");
+        setLoading(false);
+        return;
+      }
+
+      if (!data || !data.activo) {
         setErr("Usuario o contraseña incorrectos");
         setLoading(false);
         return;
