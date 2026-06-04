@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Usuario, Vista } from "@/types";
-import { useAppData } from "@/lib/useAppData";
+import type { Usuario, Vista, Gasto, Planilla } from "@/types";
+import { useAppData, savePlanilla, saveGasto, deleteGasto, saveUsuario, deleteUsuario } from "@/lib/useAppData";
 import Login from "@/components/Login";
 import Sidebar, { NAV } from "@/components/Sidebar";
 import Menu from "@/components/Menu";
@@ -24,7 +24,7 @@ const TITULOS: Record<Vista, string> = {
 const HOME_ICON = "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z";
 
 export default function Home() {
-  const { data, loaded, update } = useAppData();
+  const { data, setData, loaded, update } = useAppData();
   const [user, setUser] = useState<Usuario | null>(null);
   const [vista, setVista] = useState<Vista>("menu");
   const [collapsed, setCollapsed] = useState(false);
@@ -51,6 +51,44 @@ export default function Home() {
       />
     );
   }
+
+  // ─── Handlers con persistencia en Supabase ─────────────────────────────────
+
+  const handleSavePlanilla = async (p: Planilla) => {
+    await savePlanilla(p);
+    setData((prev) => ({ ...prev, planillas: [p, ...prev.planillas] }));
+    setVista("historial");
+  };
+
+  const handleSaveGastos = async (newGastos: Gasto[]) => {
+    const old = data.gastos;
+    // Eliminados
+    for (const g of old) {
+      if (!newGastos.find((x) => x.id === g.id)) await deleteGasto(g.id);
+    }
+    // Agregados o modificados
+    for (const g of newGastos) {
+      const prev = old.find((x) => x.id === g.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(g)) await saveGasto(g);
+    }
+    setData((prev) => ({ ...prev, gastos: newGastos }));
+  };
+
+  const handleSaveUsuarios = async (newUsuarios: typeof data.usuarios) => {
+    const old = data.usuarios;
+    // Eliminados
+    for (const u of old) {
+      if (!newUsuarios.find((x) => x.id === u.id)) await deleteUsuario(u.id);
+    }
+    // Agregados o modificados
+    for (const u of newUsuarios) {
+      const prev = old.find((x) => x.id === u.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(u)) await saveUsuario(u);
+    }
+    setData((prev) => ({ ...prev, usuarios: newUsuarios }));
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
 
   const navItem = NAV.find((n) => n.view === vista);
   const iconD = navItem?.d ?? HOME_ICON;
@@ -111,10 +149,7 @@ export default function Home() {
               <PlanillaForm
                 user={user}
                 gastos={data.gastos}
-                onSave={(p) => {
-                  update((d) => ({ ...d, planillas: [...d.planillas, p] }));
-                  setVista("historial");
-                }}
+                onSave={handleSavePlanilla}
                 onCancel={() => setVista("menu")}
               />
             )}
@@ -123,14 +158,14 @@ export default function Home() {
               <Gastos
                 user={user}
                 gastos={data.gastos}
-                onSave={(gastos) => update((d) => ({ ...d, gastos }))}
+                onSave={handleSaveGastos}
               />
             )}
 
             {vista === "usuarios" && user.rol === "Administrador" && (
               <Usuarios
                 usuarios={data.usuarios}
-                onSave={(usuarios) => update((d) => ({ ...d, usuarios }))}
+                onSave={handleSaveUsuarios}
               />
             )}
 
