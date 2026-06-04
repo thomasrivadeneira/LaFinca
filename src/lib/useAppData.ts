@@ -78,22 +78,30 @@ export function useAppData() {
   // Carga inicial: trae todas las tablas en paralelo
   useEffect(() => {
     async function load() {
-      const [usuarios, gastos, planillas] = await Promise.all([
-        supabase.from("usuarios").select("*").order("user"),
-        supabase.from("gastos").select("*").order("fecha", { ascending: false }),
-        supabase.from("planillas").select("*").order("fecha", { ascending: false }),
-      ]);
+      try {
+        const [usuarios, gastos, planillas] = await Promise.all([
+          supabase.from("usuarios").select("*").order("user"),
+          supabase.from("gastos").select("*").order("fecha", { ascending: false }),
+          supabase.from("planillas").select("*").order("fecha", { ascending: false }),
+        ]);
 
-      setData({
-        usuarios: (usuarios.data ?? []).map(rowToUsuario),
-        gastos: (gastos.data ?? []).map(rowToGasto),
-        planillas: (planillas.data ?? []).map(rowToPlanilla),
-        // Tablas removidas de la UI — se dejan vacías
-        productos: [],
-        bicarbonatos: [],
-        cernidaSel: [],
-      });
-      setLoaded(true);
+        if (usuarios.error) console.error("[Supabase] usuarios:", usuarios.error);
+        if (gastos.error)   console.error("[Supabase] gastos:",   gastos.error);
+        if (planillas.error) console.error("[Supabase] planillas:", planillas.error);
+
+        setData({
+          usuarios: (usuarios.data ?? []).map(rowToUsuario),
+          gastos: (gastos.data ?? []).map(rowToGasto),
+          planillas: (planillas.data ?? []).map(rowToPlanilla),
+          productos: [],
+          bicarbonatos: [],
+          cernidaSel: [],
+        });
+      } catch (e) {
+        console.error("[Supabase] Error crítico cargando datos:", e);
+      } finally {
+        setLoaded(true);
+      }
     }
     load();
   }, []);
@@ -112,7 +120,7 @@ export function useAppData() {
 
 // PLANILLAS
 export async function savePlanilla(p: Planilla): Promise<void> {
-  await supabase.from("planillas").upsert({
+  const { error } = await supabase.from("planillas").upsert({
     id: p.id,
     fecha: p.fecha,
     sucursal: p.sucursal,
@@ -131,11 +139,12 @@ export async function savePlanilla(p: Planilla): Promise<void> {
     usuario: p.usuario,
     ts: p.ts,
   });
+  if (error) console.error("[Supabase] savePlanilla:", error);
 }
 
 // GASTOS
 export async function saveGasto(g: Gasto): Promise<void> {
-  await supabase.from("gastos").upsert({
+  const { error } = await supabase.from("gastos").upsert({
     id: g.id,
     fecha: g.fecha,
     sucursal: g.sucursal,
@@ -143,23 +152,27 @@ export async function saveGasto(g: Gasto): Promise<void> {
     monto: g.monto,
     usuario: g.usuario,
   });
+  if (error) console.error("[Supabase] saveGasto:", error);
 }
 
 export async function deleteGasto(id: string): Promise<void> {
-  await supabase.from("gastos").delete().eq("id", id);
+  const { error } = await supabase.from("gastos").delete().eq("id", id);
+  if (error) console.error("[Supabase] deleteGasto:", error);
 }
 
 // USUARIOS
 export async function saveUsuario(u: Usuario): Promise<void> {
-  await supabase.from("usuarios").upsert({
+  const { error } = await supabase.from("usuarios").upsert({
     id: u.id,
     user: u.user,
     pass: u.pass,
     rol: u.rol,
     activo: u.activo,
   });
+  if (error) console.error("[Supabase] saveUsuario:", error);
 }
 
 export async function deleteUsuario(id: string): Promise<void> {
-  await supabase.from("usuarios").delete().eq("id", id);
+  const { error } = await supabase.from("usuarios").delete().eq("id", id);
+  if (error) console.error("[Supabase] deleteUsuario:", error);
 }
