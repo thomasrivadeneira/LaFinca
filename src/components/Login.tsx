@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Usuario } from "@/types";
+import { supabase } from "@/lib/supabase";
 import Logo from "./Logo";
 
 interface Props {
@@ -45,13 +46,42 @@ export default function Login({ usuarios, onLogin }: Props) {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = () => {
-    const u = usuarios.find((x) => x.user === user.trim() && x.pass === pass && x.activo);
-    if (u) {
-      setLoading(true);
-      setTimeout(() => onLogin(u), 500);
-    } else {
-      setErr("Usuario o contraseña incorrectos");
+  const submit = async () => {
+    const userTrim = user.trim();
+    if (!userTrim || !pass) {
+      setErr("Completá usuario y contraseña");
+      return;
+    }
+    setLoading(true);
+    setErr("");
+    try {
+      const { data, error } = await supabase
+        .from("usuarios")
+        .select("*")
+        .eq("user", userTrim)
+        .eq("pass", pass)
+        .eq("activo", true)
+        .single();
+
+      if (error || !data) {
+        console.error("[Supabase] Login error:", error);
+        setErr("Usuario o contraseña incorrectos");
+        setLoading(false);
+        return;
+      }
+
+      const u: Usuario = {
+        id: data.id,
+        user: data.user,
+        pass: data.pass,
+        rol: data.rol,
+        activo: data.activo,
+      };
+      onLogin(u);
+    } catch (e) {
+      console.error("[Supabase] Error de conexión:", e);
+      setErr("No se pudo conectar a la base de datos. Verificá tu conexión.");
+      setLoading(false);
     }
   };
 
@@ -183,13 +213,11 @@ export default function Login({ usuarios, onLogin }: Props) {
           </div>
 
           <div className="mt-8 pt-6 border-t border-[var(--border)]">
-            <p className="text-xs text-[var(--text-muted)] mb-2 text-center">Usuarios de prueba</p>
-            <div className="flex justify-center gap-2">
-              {["admin / admin", "operador / operador"].map((u) => (
-                <span key={u} className="text-xs px-3 py-1.5 rounded-lg bg-[var(--bg-muted)] border border-[var(--border)] font-mono text-[var(--text)]">
-                  {u}
-                </span>
-              ))}
+            <p className="text-xs text-[var(--text-muted)] mb-2 text-center">Acceso inicial</p>
+            <div className="flex justify-center">
+              <span className="text-xs px-3 py-1.5 rounded-lg bg-[var(--bg-muted)] border border-[var(--border)] font-mono text-[var(--text)]">
+                admin / admin123
+              </span>
             </div>
           </div>
         </div>
