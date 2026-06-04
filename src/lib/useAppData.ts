@@ -66,6 +66,9 @@ function rowToPlanilla(r: any): Planilla {
     observaciones: r.observaciones ?? "",
     usuario: r.usuario,
     ts: Number(r.ts),
+    saldoInicial: r.saldo_inicial ?? "",
+    rendicion: r.rendicion ?? "",
+    diferenciaCaja: r.diferencia_caja ?? "",
   };
 }
 
@@ -138,6 +141,9 @@ export async function savePlanilla(p: Planilla): Promise<void> {
     observaciones: p.observaciones,
     usuario: p.usuario,
     ts: p.ts,
+    saldo_inicial: p.saldoInicial ?? "",
+    rendicion: p.rendicion ?? "",
+    diferencia_caja: p.diferenciaCaja ?? "",
   });
   if (error) console.error("[Supabase] savePlanilla:", error);
 }

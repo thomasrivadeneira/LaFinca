@@ -58,6 +58,9 @@ export interface Planilla {
   usuario: string;
   ts: number;
   gastosModoManual?: boolean;
+  saldoInicial?: string;
+  rendicion?: string;
+  diferenciaCaja?: string;
 }
 
 export type Vista =

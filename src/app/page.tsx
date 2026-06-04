@@ -149,6 +149,7 @@ export default function Home() {
               <PlanillaForm
                 user={user}
                 gastos={data.gastos}
+                planillas={data.planillas}
                 onSave={handleSavePlanilla}
                 onCancel={() => setVista("menu")}
               />

@@ -69,9 +69,6 @@ export default function Login({ usuarios, onLogin }: Props) {
         return;
       }
 
-      console.log("[Debug] rows from Supabase:", JSON.stringify(rows));
-      console.log("[Debug] buscando user:", JSON.stringify(userTrim), "pass:", JSON.stringify(pass));
-
       const data = (rows ?? []).find(
         (r) => r.user === userTrim && r.pass === pass
       ) ?? null;
