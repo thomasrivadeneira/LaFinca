@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { Usuario, Gasto, Producto, Bicarbonato, CernidaSelRegistro, Planilla, Sucursal } from "@/types";
+import type { Usuario, Gasto, Producto, Bicarbonato, CernidaSelRegistro, Planilla, Sucursal, TipoGasto, Cliente, Venta, ArticuloVenta, Cobro, MedioPago } from "@/types";
 import { supabase } from "./supabase";
 
 export interface AppData {
@@ -11,6 +11,10 @@ export interface AppData {
   bicarbonatos: Bicarbonato[];
   cernidaSel: CernidaSelRegistro[];
   planillas: Planilla[];
+  tiposGastos: TipoGasto[];
+  clientes: Cliente[];
+  ventas: Venta[];
+  cobros: Cobro[];
 }
 
 const emptyData: AppData = {
@@ -20,6 +24,10 @@ const emptyData: AppData = {
   bicarbonatos: [],
   cernidaSel: [],
   planillas: [],
+  tiposGastos: [],
+  clientes: [],
+  ventas: [],
+  cobros: [],
 };
 
 function normalizeSucursal(s: unknown): Sucursal {
@@ -40,8 +48,57 @@ function rowToGasto(r: any): Gasto {
     id: r.id,
     fecha: r.fecha,
     sucursal: normalizeSucursal(r.sucursal),
-    concepto: r.concepto,
+    tipo_gasto_id: r.tipo_gasto_id ?? null,
+    concepto: r.concepto ?? "",
     monto: Number(r.monto),
+    usuario: r.usuario,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToTipoGasto(r: any): TipoGasto {
+  return { id_gastos: r.id_gastos, gasto: r.gasto };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToCliente(r: any): Cliente {
+  return { id: r.id, nombre: r.nombre };
+}
+
+function normalizeArticulo(a: unknown): ArticuloVenta {
+  return a === "CERNIDA" ? "CERNIDA" : "SELECCIONADA";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToVenta(r: any): Venta {
+  return {
+    id: r.id,
+    fecha: r.fecha,
+    sucursal: normalizeSucursal(r.sucursal),
+    cliente_id: r.cliente_id ?? null,
+    cliente: r.cliente ?? "",
+    articulo: normalizeArticulo(r.articulo),
+    cantidad: Number(r.cantidad),
+    precio: Number(r.precio),
+    total: Number(r.total),
+    usuario: r.usuario,
+  };
+}
+
+function normalizeMedio(m: unknown): MedioPago {
+  if (m === "Transferencia" || m === "Posnet/QR") return m;
+  return "Efectivo";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function rowToCobro(r: any): Cobro {
+  return {
+    id: r.id,
+    venta_id: r.venta_id,
+    fecha: r.fecha,
+    importe: Number(r.importe),
+    medio: normalizeMedio(r.medio),
+    observacion: r.observacion ?? "",
     usuario: r.usuario,
   };
 }
@@ -78,24 +135,35 @@ export function useAppData() {
   const [data, setData] = useState<AppData>(emptyData);
   const [loaded, setLoaded] = useState(false);
 
-  // Carga inicial: trae todas las tablas en paralelo
   useEffect(() => {
     async function load() {
       try {
-        const [usuarios, gastos, planillas] = await Promise.all([
+        const [usuarios, gastos, planillas, tiposGastos, clientes, ventas, cobros] = await Promise.all([
           supabase.from("usuarios").select("*").order("user"),
           supabase.from("gastos").select("*").order("fecha", { ascending: false }),
           supabase.from("planillas").select("*").order("fecha", { ascending: false }),
+          supabase.from("tipos_gastos").select("*").order("id_gastos"),
+          supabase.from("clientes").select("*").order("nombre"),
+          supabase.from("ventas").select("*").order("fecha", { ascending: false }),
+          supabase.from("cobros").select("*").order("fecha", { ascending: false }),
         ]);
 
-        if (usuarios.error) console.error("[Supabase] usuarios:", usuarios.error);
-        if (gastos.error)   console.error("[Supabase] gastos:",   gastos.error);
-        if (planillas.error) console.error("[Supabase] planillas:", planillas.error);
+        if (usuarios.error)    console.error("[Supabase] usuarios:", usuarios.error);
+        if (gastos.error)      console.error("[Supabase] gastos:", gastos.error);
+        if (planillas.error)   console.error("[Supabase] planillas:", planillas.error);
+        if (tiposGastos.error) console.error("[Supabase] tipos_gastos:", tiposGastos.error);
+        if (clientes.error)    console.error("[Supabase] clientes:", clientes.error);
+        if (ventas.error)      console.error("[Supabase] ventas:", ventas.error);
+        if (cobros.error)      console.error("[Supabase] cobros:", cobros.error);
 
         setData({
           usuarios: (usuarios.data ?? []).map(rowToUsuario),
           gastos: (gastos.data ?? []).map(rowToGasto),
           planillas: (planillas.data ?? []).map(rowToPlanilla),
+          tiposGastos: (tiposGastos.data ?? []).map(rowToTipoGasto),
+          clientes: (clientes.data ?? []).map(rowToCliente),
+          ventas: (ventas.data ?? []).map(rowToVenta),
+          cobros: (cobros.data ?? []).map(rowToCobro),
           productos: [],
           bicarbonatos: [],
           cernidaSel: [],
@@ -109,9 +177,6 @@ export function useAppData() {
     load();
   }, []);
 
-  // update: recibe una función mutadora igual que antes,
-  // pero también persiste los cambios en Supabase.
-  // Para granularidad fina, cada componente llama a los helpers de abajo.
   const update = useCallback((mut: (d: AppData) => AppData) => {
     setData((prev) => mut(prev));
   }, []);
@@ -119,9 +184,8 @@ export function useAppData() {
   return { data, setData, loaded, update };
 }
 
-// ─── Helpers de persistencia (usan supabase directamente) ────────────────────
+// ─── Helpers de persistencia ──────────────────────────────────────────────────
 
-// PLANILLAS
 export async function savePlanilla(p: Planilla): Promise<void> {
   const { error } = await supabase.from("planillas").upsert({
     id: p.id,
@@ -148,12 +212,17 @@ export async function savePlanilla(p: Planilla): Promise<void> {
   if (error) console.error("[Supabase] savePlanilla:", error);
 }
 
-// GASTOS
+export async function deletePlanilla(id: string): Promise<void> {
+  const { error } = await supabase.from("planillas").delete().eq("id", id);
+  if (error) console.error("[Supabase] deletePlanilla:", error);
+}
+
 export async function saveGasto(g: Gasto): Promise<void> {
   const { error } = await supabase.from("gastos").upsert({
     id: g.id,
     fecha: g.fecha,
     sucursal: g.sucursal,
+    tipo_gasto_id: g.tipo_gasto_id ?? null,
     concepto: g.concepto,
     monto: g.monto,
     usuario: g.usuario,
@@ -166,7 +235,6 @@ export async function deleteGasto(id: string): Promise<void> {
   if (error) console.error("[Supabase] deleteGasto:", error);
 }
 
-// USUARIOS
 export async function saveUsuario(u: Usuario): Promise<void> {
   const { error } = await supabase.from("usuarios").upsert({
     id: u.id,
@@ -181,4 +249,43 @@ export async function saveUsuario(u: Usuario): Promise<void> {
 export async function deleteUsuario(id: string): Promise<void> {
   const { error } = await supabase.from("usuarios").delete().eq("id", id);
   if (error) console.error("[Supabase] deleteUsuario:", error);
+}
+
+export async function saveVenta(v: Venta): Promise<void> {
+  const { error } = await supabase.from("ventas").upsert({
+    id: v.id,
+    fecha: v.fecha,
+    sucursal: v.sucursal,
+    cliente_id: v.cliente_id ?? null,
+    cliente: v.cliente,
+    articulo: v.articulo,
+    cantidad: v.cantidad,
+    precio: v.precio,
+    total: v.total,
+    usuario: v.usuario,
+  });
+  if (error) console.error("[Supabase] saveVenta:", error);
+}
+
+export async function deleteVenta(id: string): Promise<void> {
+  const { error } = await supabase.from("ventas").delete().eq("id", id);
+  if (error) console.error("[Supabase] deleteVenta:", error);
+}
+
+export async function saveCobro(c: Cobro): Promise<void> {
+  const { error } = await supabase.from("cobros").upsert({
+    id: c.id,
+    venta_id: c.venta_id,
+    fecha: c.fecha,
+    importe: c.importe,
+    medio: c.medio,
+    observacion: c.observacion,
+    usuario: c.usuario,
+  });
+  if (error) console.error("[Supabase] saveCobro:", error);
+}
+
+export async function deleteCobro(id: string): Promise<void> {
+  const { error } = await supabase.from("cobros").delete().eq("id", id);
+  if (error) console.error("[Supabase] deleteCobro:", error);
 }

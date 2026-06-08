@@ -1,24 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import type { Usuario, Vista, Gasto, Planilla } from "@/types";
-import { useAppData, savePlanilla, saveGasto, deleteGasto, saveUsuario, deleteUsuario } from "@/lib/useAppData";
+import type { Usuario, Vista, Gasto, Planilla, TipoGasto, Venta, Cliente, Cobro } from "@/types";
+import { useAppData, savePlanilla, deletePlanilla, saveGasto, deleteGasto, saveUsuario, deleteUsuario, saveVenta, deleteVenta, saveCobro, deleteCobro } from "@/lib/useAppData";
 import Login from "@/components/Login";
 import Sidebar, { NAV } from "@/components/Sidebar";
 import Menu from "@/components/Menu";
 import PlanillaForm from "@/components/PlanillaForm";
 import Gastos from "@/components/Gastos";
+import Ventas from "@/components/Ventas";
 import Usuarios from "@/components/Usuarios";
 import Historial from "@/components/Historial";
 import Reportes from "@/components/Reportes";
+import Configuracion from "@/components/Configuracion";
 
 const TITULOS: Record<Vista, string> = {
   menu: "Inicio",
   carga: "Planilla diaria",
   gastos: "Gastos",
+  ventas: "Ventas",
   historial: "Historial",
   usuarios: "Usuarios",
   reportes: "Reportes",
+  configuracion: "Configuración",
 };
 
 const HOME_ICON = "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z";
@@ -29,6 +33,12 @@ export default function Home() {
   const [vista, setVista] = useState<Vista>("menu");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [planillaEditando, setPlanillaEditando] = useState<Planilla | null>(null);
+
+  const irA = (v: Vista) => {
+    setPlanillaEditando(null);
+    setVista(v);
+  };
 
   if (!loaded) {
     return (
@@ -56,22 +66,88 @@ export default function Home() {
 
   const handleSavePlanilla = async (p: Planilla) => {
     await savePlanilla(p);
-    setData((prev) => ({ ...prev, planillas: [p, ...prev.planillas] }));
+    setData((prev) => {
+      const existe = prev.planillas.some((x) => x.id === p.id);
+      return {
+        ...prev,
+        planillas: existe
+          ? prev.planillas.map((x) => (x.id === p.id ? p : x))
+          : [p, ...prev.planillas],
+      };
+    });
+    setPlanillaEditando(null);
     setVista("historial");
+  };
+
+  const handleEditPlanilla = (p: Planilla) => {
+    setPlanillaEditando(p);
+    setVista("carga");
+  };
+
+  const handleDeletePlanilla = async (id: string) => {
+    await deletePlanilla(id);
+    setData((prev) => ({ ...prev, planillas: prev.planillas.filter((p) => p.id !== id) }));
   };
 
   const handleSaveGastos = async (newGastos: Gasto[]) => {
     const old = data.gastos;
-    // Eliminados
     for (const g of old) {
       if (!newGastos.find((x) => x.id === g.id)) await deleteGasto(g.id);
     }
-    // Agregados o modificados
     for (const g of newGastos) {
       const prev = old.find((x) => x.id === g.id);
       if (!prev || JSON.stringify(prev) !== JSON.stringify(g)) await saveGasto(g);
     }
     setData((prev) => ({ ...prev, gastos: newGastos }));
+  };
+
+  const handleGastoAdded = (g: Gasto) => {
+    setData((prev) => ({ ...prev, gastos: [g, ...prev.gastos] }));
+  };
+
+  const handleGastoDeleted = (id: string) => {
+    setData((prev) => ({ ...prev, gastos: prev.gastos.filter((g) => g.id !== id) }));
+  };
+
+  const handleTiposGastosChange = (tipos: TipoGasto[]) => {
+    setData((prev) => ({ ...prev, tiposGastos: tipos }));
+  };
+
+  const handleClientesChange = (clientes: Cliente[]) => {
+    setData((prev) => ({ ...prev, clientes }));
+  };
+
+  const handleSaveVentas = async (newVentas: Venta[]) => {
+    const old = data.ventas;
+    for (const v of old) {
+      if (!newVentas.find((x) => x.id === v.id)) {
+        await deleteVenta(v.id);
+        // eliminar cobros huerfanos de esta venta
+        for (const c of data.cobros.filter((c) => c.venta_id === v.id)) {
+          await deleteCobro(c.id);
+        }
+      }
+    }
+    for (const v of newVentas) {
+      const prev = old.find((x) => x.id === v.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(v)) await saveVenta(v);
+    }
+    const ventasEliminadas = old.filter((v) => !newVentas.find((x) => x.id === v.id)).map((v) => v.id);
+    setData((prev) => ({
+      ...prev,
+      ventas: newVentas,
+      cobros: prev.cobros.filter((c) => !ventasEliminadas.includes(c.venta_id)),
+    }));
+  };
+
+  const handleSaveCobro = async (cobro: Cobro) => {
+    await saveCobro(cobro);
+    setData((prev) => ({ ...prev, cobros: [cobro, ...prev.cobros] }));
+  };
+
+  const handleDeleteCobro = async (id: string) => {
+    await deleteCobro(id);
+    setData((prev) => ({ ...prev, cobros: prev.cobros.filter((c) => c.id !== id) }));
   };
 
   const handleSaveUsuarios = async (newUsuarios: typeof data.usuarios) => {
@@ -100,7 +176,7 @@ export default function Home() {
         vista={vista}
         collapsed={collapsed}
         mobileOpen={mobileOpen}
-        onGo={setVista}
+        onGo={irA}
         onLogout={() => { setUser(null); setVista("menu"); }}
         onToggle={() => setCollapsed((c) => !c)}
         onCloseMobile={() => setMobileOpen(false)}
@@ -142,16 +218,19 @@ export default function Home() {
         <main key={vista} className="flex-1 overflow-y-auto p-5 lg:p-7 animate-fade-in">
           <div className="max-w-5xl mx-auto">
             {vista === "menu" && (
-              <Menu user={user} data={data} onGo={setVista} />
+              <Menu user={user} data={data} onGo={irA} />
             )}
 
             {vista === "carga" && (
               <PlanillaForm
                 user={user}
                 gastos={data.gastos}
-                planillas={data.planillas}
+                tiposGastos={data.tiposGastos}
+                editing={planillaEditando}
                 onSave={handleSavePlanilla}
-                onCancel={() => setVista("menu")}
+                onCancel={() => { setPlanillaEditando(null); setVista(planillaEditando ? "historial" : "menu"); }}
+                onGastoAdded={handleGastoAdded}
+                onGastoDeleted={handleGastoDeleted}
               />
             )}
 
@@ -159,7 +238,20 @@ export default function Home() {
               <Gastos
                 user={user}
                 gastos={data.gastos}
+                tiposGastos={data.tiposGastos}
                 onSave={handleSaveGastos}
+              />
+            )}
+
+            {vista === "ventas" && (
+              <Ventas
+                user={user}
+                ventas={data.ventas}
+                clientes={data.clientes}
+                cobros={data.cobros}
+                onSaveVentas={handleSaveVentas}
+                onSaveCobro={handleSaveCobro}
+                onDeleteCobro={handleDeleteCobro}
               />
             )}
 
@@ -170,9 +262,20 @@ export default function Home() {
               />
             )}
 
-            {vista === "historial" && <Historial planillas={data.planillas} />}
+            {vista === "historial" && (
+              <Historial
+                planillas={data.planillas}
+                user={user}
+                onEdit={handleEditPlanilla}
+                onDelete={handleDeletePlanilla}
+              />
+            )}
 
             {vista === "reportes" && <Reportes data={data} />}
+
+            {vista === "configuracion" && user.rol === "Administrador" && (
+              <Configuracion onTiposGastosChange={handleTiposGastosChange} onClientesChange={handleClientesChange} />
+            )}
           </div>
         </main>
       </div>

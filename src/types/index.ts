@@ -13,6 +13,7 @@ export interface Gasto {
   id: string;
   fecha: string;
   sucursal: Sucursal;
+  tipo_gasto_id: number | null;
   concepto: string;
   monto: number;
   usuario: string;
@@ -63,10 +64,49 @@ export interface Planilla {
   diferenciaCaja?: string;
 }
 
+export interface TipoGasto {
+  id_gastos: number;
+  gasto: string;
+}
+
+export interface Cliente {
+  id: number;
+  nombre: string;
+}
+
+export type ArticuloVenta = "SELECCIONADA" | "CERNIDA";
+
+export type MedioPago = "Efectivo" | "Transferencia" | "Posnet/QR";
+
+export interface Cobro {
+  id: string;
+  venta_id: string;
+  fecha: string;
+  importe: number;
+  medio: MedioPago;
+  observacion: string;
+  usuario: string;
+}
+
+export interface Venta {
+  id: string;
+  fecha: string;
+  sucursal: Sucursal;
+  cliente_id: number | null;
+  cliente: string;
+  articulo: ArticuloVenta;
+  cantidad: number;
+  precio: number;
+  total: number;
+  usuario: string;
+}
+
 export type Vista =
   | "menu"
   | "carga"
   | "gastos"
+  | "ventas"
   | "historial"
   | "usuarios"
-  | "reportes";
+  | "reportes"
+  | "configuracion";

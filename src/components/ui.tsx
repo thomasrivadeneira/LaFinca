@@ -117,7 +117,7 @@ export const Badge = ({
   color = "blue",
 }: {
   children: ReactNode;
-  color?: "blue" | "green" | "red" | "gray";
+  color?: "blue" | "green" | "red" | "gray" | "yellow";
 }) => {
   const colors = {
     blue: "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-blue-200 dark:ring-blue-800",
@@ -125,6 +125,7 @@ export const Badge = ({
       "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 ring-green-200 dark:ring-green-800",
     red: "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 ring-red-200 dark:ring-red-800",
     gray: "bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 ring-slate-200 dark:ring-slate-600",
+    yellow: "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 ring-amber-200 dark:ring-amber-700",
   }[color];
   return (
     <span className={`text-xs px-2 py-0.5 rounded-md ring-1 ring-inset font-medium ${colors}`}>
