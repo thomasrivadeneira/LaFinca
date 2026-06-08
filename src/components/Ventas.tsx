@@ -10,6 +10,8 @@ interface Props {
   ventas: Venta[];
   clientes: Cliente[];
   cobros: Cobro[];
+  ventasError?: string;
+  cobrosError?: string;
   onSaveVentas: (ventas: Venta[]) => void;
   onSaveCobro: (cobro: Cobro) => void;
   onDeleteCobro: (id: string) => void;
@@ -32,7 +34,7 @@ function estadoVenta(total: number, cobrado: number): "Pendiente" | "Parcial" | 
   return "Parcial";
 }
 
-export default function Ventas({ user, ventas, clientes, cobros, onSaveVentas, onSaveCobro, onDeleteCobro }: Props) {
+export default function Ventas({ user, ventas, clientes, cobros, ventasError, cobrosError, onSaveVentas, onSaveCobro, onDeleteCobro }: Props) {
   const esAdmin = user.rol === "Administrador";
   const hoy = new Date().toISOString().slice(0, 10);
 
@@ -188,6 +190,29 @@ export default function Ventas({ user, ventas, clientes, cobros, onSaveVentas, o
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <>
+      {/* Panel de error de base de datos */}
+      {(ventasError || cobrosError) && (
+        <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+          <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">
+            Error al cargar datos desde Supabase — por eso las ventas y cobros no se muestran al volver a entrar
+          </p>
+          {ventasError && (
+            <p className="text-xs text-red-600 dark:text-red-300 font-mono break-all mb-1">
+              ventas: {ventasError}
+            </p>
+          )}
+          {cobrosError && (
+            <p className="text-xs text-red-600 dark:text-red-300 font-mono break-all mb-1">
+              cobros: {cobrosError}
+            </p>
+          )}
+          <div className="mt-3 text-xs text-red-600 dark:text-red-400 space-y-1">
+            <p className="font-semibold">Ejecutá este SQL en Supabase → SQL Editor:</p>
+            <pre className="bg-red-100 dark:bg-red-900/40 rounded p-2 overflow-x-auto text-[11px] select-all">{SQL_FIX}</pre>
+          </div>
+        </div>
+      )}
+
       {/* Formulario venta */}
       <Card className="p-5 mb-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
@@ -465,3 +490,36 @@ export default function Ventas({ user, ventas, clientes, cobros, onSaveVentas, o
     </>
   );
 }
+
+const SQL_FIX = `-- Tabla ventas
+CREATE TABLE IF NOT EXISTS public.ventas (
+  id TEXT PRIMARY KEY,
+  fecha DATE NOT NULL,
+  sucursal TEXT NOT NULL,
+  cliente_id INTEGER REFERENCES public.clientes(id),
+  cliente TEXT NOT NULL,
+  articulo TEXT NOT NULL,
+  cantidad NUMERIC NOT NULL,
+  precio NUMERIC NOT NULL,
+  total NUMERIC NOT NULL,
+  usuario TEXT NOT NULL
+);
+ALTER TABLE public.ventas DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.ventas TO anon;
+GRANT ALL ON TABLE public.ventas TO authenticated;
+
+-- Tabla cobros
+CREATE TABLE IF NOT EXISTS public.cobros (
+  id TEXT PRIMARY KEY,
+  venta_id TEXT NOT NULL,
+  fecha DATE NOT NULL,
+  importe NUMERIC NOT NULL,
+  medio TEXT NOT NULL,
+  observacion TEXT DEFAULT '',
+  usuario TEXT NOT NULL
+);
+ALTER TABLE public.cobros DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.cobros TO anon;
+GRANT ALL ON TABLE public.cobros TO authenticated;
+
+NOTIFY pgrst, 'reload schema';`;

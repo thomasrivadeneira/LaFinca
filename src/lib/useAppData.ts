@@ -134,6 +134,7 @@ function rowToPlanilla(r: any): Planilla {
 export function useAppData() {
   const [data, setData] = useState<AppData>(emptyData);
   const [loaded, setLoaded] = useState(false);
+  const [tableErrors, setTableErrors] = useState<Partial<Record<string, string>>>({});
 
   useEffect(() => {
     async function load() {
@@ -155,6 +156,11 @@ export function useAppData() {
         if (clientes.error)    console.error("[Supabase] clientes:", clientes.error);
         if (ventas.error)      console.error("[Supabase] ventas:", ventas.error);
         if (cobros.error)      console.error("[Supabase] cobros:", cobros.error);
+
+        const errors: Partial<Record<string, string>> = {};
+        if (ventas.error)  errors.ventas  = `[${ventas.error.code}] ${ventas.error.message}`;
+        if (cobros.error)  errors.cobros  = `[${cobros.error.code}] ${cobros.error.message}`;
+        setTableErrors(errors);
 
         setData({
           usuarios: (usuarios.data ?? []).map(rowToUsuario),
@@ -181,7 +187,7 @@ export function useAppData() {
     setData((prev) => mut(prev));
   }, []);
 
-  return { data, setData, loaded, update };
+  return { data, setData, loaded, update, tableErrors };
 }
 
 // ─── Helpers de persistencia ──────────────────────────────────────────────────

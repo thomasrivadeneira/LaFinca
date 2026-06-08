@@ -28,7 +28,7 @@ const TITULOS: Record<Vista, string> = {
 const HOME_ICON = "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z";
 
 export default function Home() {
-  const { data, setData, loaded, update } = useAppData();
+  const { data, setData, loaded, update, tableErrors } = useAppData();
   const [user, setUser] = useState<Usuario | null>(null);
   const [vista, setVista] = useState<Vista>("menu");
   const [collapsed, setCollapsed] = useState(false);
@@ -249,6 +249,8 @@ export default function Home() {
                 ventas={data.ventas}
                 clientes={data.clientes}
                 cobros={data.cobros}
+                ventasError={tableErrors.ventas}
+                cobrosError={tableErrors.cobros}
                 onSaveVentas={handleSaveVentas}
                 onSaveCobro={handleSaveCobro}
                 onDeleteCobro={handleDeleteCobro}
