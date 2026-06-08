@@ -1,27 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import type { Usuario, Gasto, Sucursal } from "@/types";
+import type { Usuario, Gasto, Sucursal, TipoGasto } from "@/types";
 import { Card, Field, Input, Select, Button, Table, Th, Td, Badge } from "./ui";
 import { uid, money, SUCURSALES } from "@/lib/defaults";
 
 interface Props {
   user: Usuario;
   gastos: Gasto[];
+  tiposGastos: TipoGasto[];
   onSave: (gastos: Gasto[]) => void;
 }
 
 type Filtro = "Todas" | Sucursal;
 
-export default function Gastos({ user, gastos, onSave }: Props) {
+export default function Gastos({ user, gastos, tiposGastos, onSave }: Props) {
   const esAdmin = user.rol === "Administrador";
   const hoy = new Date().toISOString().slice(0, 10);
 
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<{ fecha: string; sucursal: Sucursal; concepto: string; monto: string }>({
+  const [form, setForm] = useState<{ fecha: string; sucursal: Sucursal; tipoGastoId: number | ""; monto: string }>({
     fecha: hoy,
     sucursal: "Belgrano",
-    concepto: "",
+    tipoGastoId: "",
     monto: "",
   });
   const [err, setErr] = useState("");
@@ -31,28 +32,33 @@ export default function Gastos({ user, gastos, onSave }: Props) {
 
   const startEdit = (g: Gasto) => {
     setEditId(g.id);
-    setForm({ fecha: g.fecha, sucursal: g.sucursal, concepto: g.concepto, monto: String(g.monto) });
+    setForm({
+      fecha: g.fecha,
+      sucursal: g.sucursal,
+      tipoGastoId: g.tipo_gasto_id ?? "",
+      monto: String(g.monto),
+    });
     setErr("");
   };
 
   const cancelar = () => {
     setEditId(null);
-    setForm({ fecha: hoy, sucursal: "Belgrano", concepto: "", monto: "" });
+    setForm({ fecha: hoy, sucursal: "Belgrano", tipoGastoId: "", monto: "" });
     setErr("");
   };
 
   const guardar = () => {
-    if (!form.concepto.trim() || !form.monto) {
-      setErr("Concepto y monto son obligatorios");
-      return;
-    }
-    if (!form.sucursal) {
-      setErr("Sucursal es obligatoria");
-      return;
-    }
+    if (!form.tipoGastoId) { setErr("Seleccioná un tipo de gasto"); return; }
+    if (!form.monto || Number(form.monto) <= 0) { setErr("Ingresá un monto válido"); return; }
+    const tipo = tiposGastos.find((t) => t.id_gastos === Number(form.tipoGastoId));
+    if (!tipo) { setErr("Tipo de gasto inválido"); return; }
     const monto = Number(form.monto);
     if (editId) {
-      onSave(gastos.map((g) => (g.id === editId ? { ...g, ...form, monto } : g)));
+      onSave(gastos.map((g) =>
+        g.id === editId
+          ? { ...g, fecha: form.fecha, sucursal: form.sucursal, tipo_gasto_id: tipo.id_gastos, concepto: tipo.gasto, monto }
+          : g
+      ));
     } else {
       onSave([
         ...gastos,
@@ -60,7 +66,8 @@ export default function Gastos({ user, gastos, onSave }: Props) {
           id: uid(),
           fecha: form.fecha,
           sucursal: form.sucursal,
-          concepto: form.concepto.trim(),
+          tipo_gasto_id: tipo.id_gastos,
+          concepto: tipo.gasto,
           monto,
           usuario: user.user,
         },
@@ -99,13 +106,16 @@ export default function Gastos({ user, gastos, onSave }: Props) {
               {SUCURSALES.map((s) => <option key={s} value={s}>{s}</option>)}
             </Select>
           </Field>
-          <Field label="Concepto">
-            <Input
-              type="text"
-              value={form.concepto}
-              onChange={(e) => setForm({ ...form, concepto: e.target.value })}
-              placeholder="Ej: Heladera, escoba..."
-            />
+          <Field label="Tipo de gasto">
+            <Select
+              value={form.tipoGastoId}
+              onChange={(e) => setForm({ ...form, tipoGastoId: e.target.value ? Number(e.target.value) : "" })}
+            >
+              <option value="">— Seleccioná —</option>
+              {tiposGastos.map((t) => (
+                <option key={t.id_gastos} value={t.id_gastos}>{t.gasto}</option>
+              ))}
+            </Select>
           </Field>
           <Field label="Monto">
             <Input
@@ -120,9 +130,13 @@ export default function Gastos({ user, gastos, onSave }: Props) {
           </div>
         </div>
         {err && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{err}</p>}
+        {tiposGastos.length === 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 italic">
+            No hay tipos de gasto. Agregá tipos en Configuración → Tipos de gastos.
+          </p>
+        )}
       </Card>
 
-      {/* Filtro por sucursal */}
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xs text-[var(--text-muted)] font-medium">Filtrar:</span>
         {(["Todas", ...SUCURSALES] as Filtro[]).map((op) => (
@@ -141,7 +155,7 @@ export default function Gastos({ user, gastos, onSave }: Props) {
           <tr>
             <Th>Fecha</Th>
             <Th>Sucursal</Th>
-            <Th>Concepto</Th>
+            <Th>Tipo de gasto</Th>
             <Th align="right">Monto</Th>
             <Th>Cargó</Th>
             <Th align="right">Acciones</Th>
