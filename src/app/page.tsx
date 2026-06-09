@@ -226,6 +226,8 @@ export default function Home() {
                 user={user}
                 gastos={data.gastos}
                 tiposGastos={data.tiposGastos}
+                ventas={data.ventas}
+                cobros={data.cobros}
                 editing={planillaEditando}
                 onSave={handleSavePlanilla}
                 onCancel={() => { setPlanillaEditando(null); setVista(planillaEditando ? "historial" : "menu"); }}

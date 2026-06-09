@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { Usuario, Planilla, Gasto, Sucursal, TipoGasto } from "@/types";
+import { useState, useEffect } from "react";
+import type { Usuario, Planilla, Gasto, Sucursal, TipoGasto, Venta, Cobro } from "@/types";
 import { Card, Field, Input, Select, Textarea, Button } from "./ui";
 import { uid, money, SUCURSALES } from "@/lib/defaults";
 import { saveGasto, deleteGasto } from "@/lib/useAppData";
@@ -10,6 +10,8 @@ interface Props {
   user: Usuario;
   gastos: Gasto[];
   tiposGastos: TipoGasto[];
+  ventas: Venta[];
+  cobros: Cobro[];
   onSave: (p: Planilla) => void;
   onCancel: () => void;
   onGastoAdded: (g: Gasto) => void;
@@ -17,7 +19,28 @@ interface Props {
   editing?: Planilla | null;
 }
 
-export default function PlanillaForm({ user, gastos, tiposGastos, onSave, onCancel, onGastoAdded, onGastoDeleted, editing = null }: Props) {
+function calcularPedidos(fecha: string, sucursal: Sucursal, ventas: Venta[], cobros: Cobro[]) {
+  // IDs de ventas de esa sucursal (cualquier fecha)
+  const ventasIdsSucursal = new Set(ventas.filter((v) => v.sucursal === sucursal).map((v) => v.id));
+
+  // Pedidos Ingresos: cobros cuya fecha = fecha de planilla y cuya venta pertenece a esa sucursal
+  const ingreso = cobros
+    .filter((c) => c.fecha === fecha && ventasIdsSucursal.has(c.venta_id))
+    .reduce((s, c) => s + c.importe, 0);
+
+  // Pedidos Debe: total ventas del día y sucursal - cobros recibidos ese día (misma sucursal)
+  const totalVentasDelDia = ventas
+    .filter((v) => v.fecha === fecha && v.sucursal === sucursal)
+    .reduce((s, v) => s + v.total, 0);
+  const debe = totalVentasDelDia - ingreso;
+
+  return {
+    pedidos_ing: ingreso > 0 ? String(ingreso) : "",
+    pedidos_debe: debe > 0 ? String(debe) : "",
+  };
+}
+
+export default function PlanillaForm({ user, gastos, tiposGastos, ventas, cobros, onSave, onCancel, onGastoAdded, onGastoDeleted, editing = null }: Props) {
   const hoy = new Date().toISOString().slice(0, 10);
   const [f, setF] = useState(() => editing ? {
     fecha: editing.fecha,
@@ -37,6 +60,13 @@ export default function PlanillaForm({ user, gastos, tiposGastos, onSave, onCanc
     obs: "",
   });
   const [msg, setMsg] = useState("");
+
+  // Auto-calcula Pedidos Ingresos y Pedidos Debe al abrir y al cambiar fecha/sucursal
+  useEffect(() => {
+    const { pedidos_ing, pedidos_debe } = calcularPedidos(f.fecha, f.sucursal, ventas, cobros);
+    setF((prev) => ({ ...prev, pedidos_ing, pedidos_debe }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [f.fecha, f.sucursal, ventas, cobros]);
 
   // Gastos inline
   const [tipoGastoId, setTipoGastoId] = useState<number | "">("");
@@ -228,10 +258,10 @@ export default function PlanillaForm({ user, gastos, tiposGastos, onSave, onCanc
 
       {/* ── Otros campos ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
-        <Field label="Pedidos ingresos">
+        <Field label="Pedidos ingresos (cobros del día)">
           <Input type="number" value={f.pedidos_ing} onChange={set("pedidos_ing")} />
         </Field>
-        <Field label="Pedidos debe">
+        <Field label="Pedidos debe (saldo del día)">
           <Input type="number" value={f.pedidos_debe} onChange={set("pedidos_debe")} />
         </Field>
         <Field label="Debe / Haber">
