@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Usuario, Gasto, Sucursal, TipoGasto } from "@/types";
-import { Card, Field, Input, Select, Button, Table, Th, Td, Badge } from "./ui";
+import { Card, Field, Input, Select, Button, Table, Th, Td, Badge, MobileList, MobileCard, MobileRow } from "./ui";
 import { money, SUCURSALES } from "@/lib/defaults";
 
 interface Props {
@@ -99,7 +99,8 @@ export default function Gastos({ user, gastos, tiposGastos, onSave }: Props) {
         </div>
       </Card>
 
-      <Table>
+      {/* ── Tabla (desktop) ── */}
+      <Table className="hidden md:block">
         <thead>
           <tr>
             <Th>Fecha</Th>
@@ -151,6 +152,42 @@ export default function Gastos({ user, gastos, tiposGastos, onSave }: Props) {
           </tfoot>
         )}
       </Table>
+
+      {/* ── Cards (mobile) ── */}
+      {gastosFiltrados.length === 0 ? (
+        <p className="md:hidden text-sm text-[var(--text-muted)] text-center py-6">
+          Sin gastos para los filtros seleccionados
+        </p>
+      ) : (
+        <MobileList>
+          {gastosFiltrados.slice().reverse().map((g) => (
+            <MobileCard key={g.id}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-semibold text-sm">{g.concepto}</span>
+                <Badge color={g.sucursal === "Belgrano" ? "blue" : "green"}>{g.sucursal}</Badge>
+              </div>
+              <MobileRow label="Fecha">{g.fecha}</MobileRow>
+              <MobileRow label="Monto">
+                <span className="font-semibold">{money(g.monto)}</span>
+              </MobileRow>
+              <MobileRow label="Cargó">
+                <span className="text-[var(--text-muted)]">{g.usuario}</span>
+              </MobileRow>
+              {esAdmin && (
+                <div className="pt-2 border-t border-[var(--border)]">
+                  <Button variant="danger" onClick={() => borrar(g.id)} className="w-full">Borrar</Button>
+                </div>
+              )}
+            </MobileCard>
+          ))}
+          <div className="card-elevated p-4 flex items-center justify-between bg-[var(--bg-muted)]">
+            <span className="font-semibold text-sm">
+              Total{filtroSucursal !== "Todas" ? ` · ${filtroSucursal}` : ""}
+            </span>
+            <span className="font-bold">{money(total)}</span>
+          </div>
+        </MobileList>
+      )}
     </>
   );
 }

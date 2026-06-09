@@ -22,7 +22,7 @@ export const Field = ({ label, children }: { label: string; children: ReactNode 
 );
 
 const baseInput =
-  "w-full px-3 py-2 border border-[var(--border)] rounded-xl bg-[var(--bg-elevated)] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors placeholder:text-[var(--text-muted)]";
+  "w-full px-3 py-3 md:py-2 border border-[var(--border)] rounded-xl bg-[var(--bg-elevated)] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors placeholder:text-[var(--text-muted)]";
 
 export const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input {...props} className={`${baseInput} ${props.className ?? ""}`} />
@@ -63,7 +63,7 @@ export const Button = ({
 
   const sizes = {
     sm: "px-2.5 py-1.5 text-xs",
-    md: "px-3.5 py-2 text-sm",
+    md: "px-3.5 py-3 md:py-2 text-sm",
   }[size];
 
   return (
@@ -76,9 +76,33 @@ export const Button = ({
   );
 };
 
-export const Table = ({ children }: { children: ReactNode }) => (
-  <div className="card-elevated overflow-hidden">
+export const Table = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
+  <div className={`card-elevated overflow-x-auto ${className}`}>
     <table className="w-full border-collapse">{children}</table>
+  </div>
+);
+
+// ── Vista mobile: lista de cards en lugar de tabla ──────────────────────────────
+export const MobileList = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
+  <div className={`md:hidden space-y-3 ${className}`}>{children}</div>
+);
+
+export const MobileCard = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
+  <div className={`card-elevated p-4 space-y-2 ${className}`}>{children}</div>
+);
+
+export const MobileRow = ({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) => (
+  <div className={`flex items-center justify-between gap-3 ${className}`}>
+    <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)] shrink-0">{label}</span>
+    <span className="text-sm font-medium text-right min-w-0">{children}</span>
   </div>
 );
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Usuario, Venta, Sucursal, Cliente, ArticuloVenta, Cobro, MedioPago } from "@/types";
-import { Card, Field, Input, Select, Button, Table, Th, Td, Badge } from "./ui";
+import { Card, Field, Input, Select, Button, Table, Th, Td, Badge, MobileList, MobileCard, MobileRow } from "./ui";
 import { uid, money, num, SUCURSALES } from "@/lib/defaults";
 
 interface Props {
@@ -218,7 +218,7 @@ export default function Ventas({ user, ventas, clientes, cobros, ventasError, co
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
           {editing ? "Modificar venta" : "Nueva venta"}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1.5fr_1fr_1fr_1fr_auto] gap-2 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.5fr_1fr_1fr_1fr_auto] gap-3 items-end">
           <Field label="Fecha">
             <Input type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} />
           </Field>
@@ -245,8 +245,8 @@ export default function Ventas({ user, ventas, clientes, cobros, ventasError, co
             <Input type="number" value={form.precio} onChange={(e) => setForm({ ...form, precio: e.target.value })} />
           </Field>
           <div className="flex gap-2">
-            <Button variant="primary" onClick={guardarVenta}>{editing ? "Guardar" : "Agregar"}</Button>
-            {editing && <Button onClick={cancelarVenta}>Cancelar</Button>}
+            <Button variant="primary" onClick={guardarVenta} className="flex-1 md:flex-none">{editing ? "Guardar" : "Agregar"}</Button>
+            {editing && <Button onClick={cancelarVenta} className="flex-1 md:flex-none">Cancelar</Button>}
           </div>
         </div>
         {totalPreview > 0 && (
@@ -338,7 +338,7 @@ export default function Ventas({ user, ventas, clientes, cobros, ventasError, co
                     <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                       Registrar cobro
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_2fr_auto] gap-2 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_2fr_auto] gap-3 items-end">
                       <Field label="Fecha">
                         <Input type="date" value={formCobro.fecha} onChange={(e) => setFormCobro({ ...formCobro, fecha: e.target.value })} />
                       </Field>
@@ -363,7 +363,7 @@ export default function Ventas({ user, ventas, clientes, cobros, ventasError, co
                           placeholder="Ej: Pago de seña"
                         />
                       </Field>
-                      <Button variant="primary" onClick={guardarCobro} disabled={savingCobro}>
+                      <Button variant="primary" onClick={guardarCobro} disabled={savingCobro} className="w-full md:w-auto">
                         {savingCobro ? "..." : "Cobrar"}
                       </Button>
                     </div>
@@ -390,8 +390,8 @@ export default function Ventas({ user, ventas, clientes, cobros, ventasError, co
         ))}
       </div>
 
-      {/* Tabla */}
-      <Table>
+      {/* Tabla (desktop) */}
+      <Table className="hidden md:block">
         <thead>
           <tr>
             <Th>Fecha</Th>
@@ -481,6 +481,73 @@ export default function Ventas({ user, ventas, clientes, cobros, ventasError, co
           </tfoot>
         )}
       </Table>
+
+      {/* Cards (mobile) */}
+      {ventasFiltradas.length === 0 ? (
+        <p className="md:hidden text-sm text-[var(--text-muted)] text-center py-6">
+          Sin ventas{filtro !== "Todas" ? ` para ${filtro}` : ""}
+        </p>
+      ) : (
+        <MobileList>
+          {ventasFiltradas.slice().reverse().map((v) => {
+            const cobrado = cobradoDeVenta(v.id, cobros);
+            const saldo = v.total - cobrado;
+            const estado = estadoVenta(v.total, cobrado);
+            const esCobrandoEsta = ventaCobroId === v.id;
+            return (
+              <MobileCard key={v.id} className={esCobrandoEsta ? "ring-1 ring-emerald-300 dark:ring-emerald-700" : ""}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-sm truncate">{v.cliente}</span>
+                  <Badge color={v.sucursal === "Belgrano" ? "blue" : "green"}>{v.sucursal}</Badge>
+                </div>
+                <MobileRow label="Fecha">{v.fecha}</MobileRow>
+                <MobileRow label="Artículo">{v.articulo}</MobileRow>
+                <MobileRow label="Cantidad">{num(v.cantidad)}</MobileRow>
+                <MobileRow label="Precio">{money(v.precio)}</MobileRow>
+                <MobileRow label="Total">
+                  <span className="font-semibold">{money(v.total)}</span>
+                </MobileRow>
+                <MobileRow label="Saldo">
+                  <span className={saldo > 0 ? "text-red-600 dark:text-red-400 font-medium" : "text-emerald-600 dark:text-emerald-400 font-medium"}>
+                    {money(saldo)}
+                  </span>
+                </MobileRow>
+                <MobileRow label="Estado">
+                  <Badge color={estado === "Cobrado" ? "green" : estado === "Parcial" ? "yellow" : "red"}>
+                    {estado}
+                  </Badge>
+                </MobileRow>
+                <MobileRow label="Cargó">
+                  <span className="text-[var(--text-muted)]">{v.usuario}</span>
+                </MobileRow>
+                <div className="flex gap-2 pt-2 border-t border-[var(--border)]">
+                  <Button
+                    variant={esCobrandoEsta ? "primary" : "ghost"}
+                    onClick={() => abrirCobros(v)}
+                    className="flex-1"
+                  >
+                    {estado === "Cobrado" ? "Ver cobros" : "Cobrar"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => startEdit(v)} className="flex-1">Editar</Button>
+                  {esAdmin && (
+                    <Button variant="danger" onClick={() => borrarVenta(v.id)} className="flex-1">Borrar</Button>
+                  )}
+                </div>
+              </MobileCard>
+            );
+          })}
+          <div className="card-elevated p-4 space-y-1 bg-[var(--bg-muted)]">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">Total ventas</span>
+              <span className="font-bold">{money(totalVentas)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[var(--text-muted)]">Saldo pendiente</span>
+              <span className="font-semibold text-red-600 dark:text-red-400">{money(totalVentas - totalCobrado)}</span>
+            </div>
+          </div>
+        </MobileList>
+      )}
 
       {!esAdmin && (
         <p className="text-xs text-[var(--text-muted)] mt-2">

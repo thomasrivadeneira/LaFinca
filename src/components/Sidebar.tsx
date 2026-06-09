@@ -163,7 +163,7 @@ function SidebarContent({ user, vista, collapsed, onGo, onLogout, onToggle, onCl
               }`}
             >
               <div
-                className={`w-8 h-8 rounded-lg bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white shrink-0 shadow-sm transition-all ${
+                className={`w-11 h-11 lg:w-8 lg:h-8 rounded-lg bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white shrink-0 shadow-sm transition-all ${
                   active ? "shadow-md" : ""
                 }`}
               >

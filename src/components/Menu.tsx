@@ -138,7 +138,8 @@ export default function Menu({ user, data, onGo }: Props) {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
             Últimas planillas
           </p>
-          <div className="card-elevated overflow-hidden">
+          {/* Tabla (desktop) */}
+          <div className="hidden md:block card-elevated overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr>
@@ -164,6 +165,30 @@ export default function Menu({ user, data, onGo }: Props) {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Cards (mobile) */}
+          <div className="md:hidden space-y-3">
+            {recientes.map((p) => (
+              <div key={p.id} className="card-elevated p-4 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-sm">{p.fecha}</span>
+                  <span className="text-xs text-[var(--text-muted)]">{p.sucursal}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">Total</span>
+                  <span className="text-sm font-semibold">{money(p.total)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">Gastos</span>
+                  <span className="text-sm text-[var(--text-muted)]">{money(p.gastos)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">Hay</span>
+                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{money(p.hay)}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
