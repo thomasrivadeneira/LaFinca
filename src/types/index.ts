@@ -107,6 +107,5 @@ export type Vista =
   | "gastos"
   | "ventas"
   | "historial"
-  | "usuarios"
   | "reportes"
   | "configuracion";

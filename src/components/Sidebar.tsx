@@ -29,10 +29,10 @@ export const NAV: {
     d: "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
   },
   {
-    view: "gastos",
-    label: "Gastos",
-    gradient: "from-fuchsia-500 to-pink-600",
-    d: "M21 8V7l-3 2-3-2-3 2-3-2-3 2-3-2v14l3-2 3 2 3-2 3 2 3-2 3 2V8z",
+    view: "historial",
+    label: "Historial",
+    gradient: "from-slate-500 to-slate-700",
+    d: "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8M12 7v5l4 2",
   },
   {
     view: "ventas",
@@ -41,23 +41,16 @@ export const NAV: {
     d: "M16 11V7a4 4 0 0 0-8 0v4M5 9h14l-1.5 11.5a2 2 0 0 1-2 1.5H8.5a2 2 0 0 1-2-1.5z",
   },
   {
-    view: "historial",
-    label: "Historial",
-    gradient: "from-slate-500 to-slate-700",
-    d: "M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8M12 7v5l4 2",
+    view: "gastos",
+    label: "Gastos",
+    gradient: "from-fuchsia-500 to-pink-600",
+    d: "M21 8V7l-3 2-3-2-3 2-3-2-3 2-3-2v14l3-2 3 2 3-2 3 2 3-2 3 2V8z",
   },
   {
     view: "reportes",
     label: "Reportes",
     gradient: "from-rose-500 to-red-600",
     d: "M12 20V10M18 20V4M6 20v-6",
-  },
-  {
-    view: "usuarios",
-    label: "Usuarios",
-    gradient: "from-violet-500 to-purple-600",
-    d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-    soloAdmin: true,
   },
   {
     view: "configuracion",

@@ -98,7 +98,7 @@ export default function Menu({ user, data, onGo }: Props) {
           <QuickStat label="Planillas" value={data.planillas.length} gradient="from-indigo-500 to-violet-600" icon="📋" onClick={() => onGo("historial")} />
           <QuickStat label="Gastos totales" value={money(totalGastos)} gradient="from-fuchsia-500 to-pink-600" icon="💸" onClick={() => onGo("gastos")} />
           <QuickStat label="Registros de gastos" value={data.gastos.length} gradient="from-amber-500 to-orange-600" icon="🧾" onClick={() => onGo("gastos")} />
-          <QuickStat label="Usuarios" value={data.usuarios.length} gradient="from-violet-500 to-purple-600" icon="👥" onClick={() => onGo("usuarios")} />
+          <QuickStat label="Usuarios" value={data.usuarios.length} gradient="from-violet-500 to-purple-600" icon="👥" onClick={() => onGo("configuracion")} />
         </div>
       </div>
 

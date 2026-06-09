@@ -9,7 +9,6 @@ import Menu from "@/components/Menu";
 import PlanillaForm from "@/components/PlanillaForm";
 import Gastos from "@/components/Gastos";
 import Ventas from "@/components/Ventas";
-import Usuarios from "@/components/Usuarios";
 import Historial from "@/components/Historial";
 import Reportes from "@/components/Reportes";
 import Configuracion from "@/components/Configuracion";
@@ -20,7 +19,6 @@ const TITULOS: Record<Vista, string> = {
   gastos: "Gastos",
   ventas: "Ventas",
   historial: "Historial",
-  usuarios: "Usuarios",
   reportes: "Reportes",
   configuracion: "Configuración",
 };
@@ -259,13 +257,6 @@ export default function Home() {
               />
             )}
 
-            {vista === "usuarios" && user.rol === "Administrador" && (
-              <Usuarios
-                usuarios={data.usuarios}
-                onSave={handleSaveUsuarios}
-              />
-            )}
-
             {vista === "historial" && (
               <Historial
                 planillas={data.planillas}
@@ -278,7 +269,12 @@ export default function Home() {
             {vista === "reportes" && <Reportes data={data} />}
 
             {vista === "configuracion" && user.rol === "Administrador" && (
-              <Configuracion onTiposGastosChange={handleTiposGastosChange} onClientesChange={handleClientesChange} />
+              <Configuracion
+                onTiposGastosChange={handleTiposGastosChange}
+                onClientesChange={handleClientesChange}
+                usuarios={data.usuarios}
+                onSaveUsuarios={handleSaveUsuarios}
+              />
             )}
           </div>
         </main>

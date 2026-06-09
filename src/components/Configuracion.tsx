@@ -3,11 +3,13 @@
 import { useState } from "react";
 import TiposGastos from "./TiposGastos";
 import Clientes from "./Clientes";
-import type { TipoGasto, Cliente } from "@/types";
+import Usuarios from "./Usuarios";
+import type { TipoGasto, Cliente, Usuario } from "@/types";
 
 const SECCIONES = [
   { key: "tipos-gastos", label: "Tipos de gastos" },
   { key: "clientes", label: "Clientes" },
+  { key: "usuarios", label: "Usuarios" },
 ] as const;
 
 type Seccion = typeof SECCIONES[number]["key"];
@@ -15,9 +17,11 @@ type Seccion = typeof SECCIONES[number]["key"];
 interface Props {
   onTiposGastosChange?: (tipos: TipoGasto[]) => void;
   onClientesChange?: (clientes: Cliente[]) => void;
+  usuarios: Usuario[];
+  onSaveUsuarios: (usuarios: Usuario[]) => void;
 }
 
-export default function Configuracion({ onTiposGastosChange, onClientesChange }: Props) {
+export default function Configuracion({ onTiposGastosChange, onClientesChange, usuarios, onSaveUsuarios }: Props) {
   const [seccion, setSeccion] = useState<Seccion>("tipos-gastos");
 
   const pillBase = "px-3 py-1.5 text-xs font-medium rounded-lg border transition-all";
@@ -39,6 +43,7 @@ export default function Configuracion({ onTiposGastosChange, onClientesChange }:
       </div>
       {seccion === "tipos-gastos" && <TiposGastos onChange={onTiposGastosChange} />}
       {seccion === "clientes" && <Clientes onChange={onClientesChange} />}
+      {seccion === "usuarios" && <Usuarios usuarios={usuarios} onSave={onSaveUsuarios} />}
     </>
   );
 }
